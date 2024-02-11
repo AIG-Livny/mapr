@@ -119,7 +119,7 @@ SUBPROJECTS		+= lib/imgui
 
 # New size print
 PRELINK		= mv $(OUT_FILE) $(OUT_FILE)_old 2> /dev/null ;
-POSTLINK	= ./size.sh $(OUT_FILE) $(OUT_FILE)_old ; rm -f $(OUT_FILE)_old
+POSTLINK	= ; ./size.sh $(OUT_FILE) $(OUT_FILE)_old ; rm -f $(OUT_FILE)_old
 
 #-----------FOOTER-----------
 
