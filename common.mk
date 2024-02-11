@@ -26,9 +26,20 @@ LIBS 			:= $(addprefix -l, $(LIBS))
 
 ifneq ("$(PKG_SEARCH)","")
 ifneq (, $(shell which pkg-config))
-INCLUDE_DIRS    += $(shell pkg-config --cflags $(PKG_SEARCH))
-LIBS 			+= $(shell pkg-config --libs-only-l $(PKG_SEARCH))
-LIB_DIRS 		+= $(shell pkg-config --libs-only-L $(PKG_SEARCH))
+INCLUDE_DIRS    += $(shell pkg-config --cflags 		$(PKG_SEARCH) 2>&1)
+LIBS 			+= $(shell pkg-config --libs-only-l $(PKG_SEARCH) 2>&1)
+LIB_DIRS 		+= $(shell pkg-config --libs-only-L $(PKG_SEARCH) 2>&1)
+
+ifneq (,$(findstring No package,$(INCLUDE_DIRS)))
+    $(error LIBRARY NOT FOUND $(INCLUDE_DIRS))
+endif
+ifneq (,$(findstring No package,$(LIBS)))
+    $(error LIBRARY NOT FOUND $(LIBS))
+endif
+ifneq (,$(findstring No package,$(LIB_DIRS)))
+    $(error LIBRARY NOT FOUND $(LIB_DIRS))
+endif
+
 else
 $(error PKG_SEARCH present, but pkg-config not found!)
 endif
