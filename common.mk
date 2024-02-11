@@ -24,6 +24,16 @@ LIB_DIRS 		:= $(addprefix -L, $(LIB_DIRS))
 INCLUDE_DIRS 	:= $(addprefix -I, $(INCLUDE_DIRS))
 LIBS 			:= $(addprefix -l, $(LIBS))
 
+ifneq (, $(shell which pkg-config))
+INCLUDE_DIRS    += $(shell pkg-config --cflags $(PKG_SEARCH))
+LIBS 			+= $(shell pkg-config --libs-only-l $(PKG_SEARCH))
+LIB_DIRS 		+= $(shell pkg-config --libs-only-L $(PKG_SEARCH))
+else
+ifneq ("$(PKG_SEARCH)","")
+$(error PKG_SEARCH present, but pkg-config not found!)
+endif
+endif
+
 # Project files
 SOURCES += $(foreach dr, $(SRC_DIRS), $(foreach ext, $(SRC_EXTS),  $(call rwildcard,$(dr),$(ext))))
 SOURCES := $(filter-out $(EXCLUDESRC),$(SOURCES))
@@ -41,7 +51,7 @@ $(shell mkdir -p $(dir $(DEPS)) 2> /dev/null)
 $(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
 
 DEPFLAGS 	= -MT $@ -MD -MP -MF $(OBJ_PATH)/$*.Td
-POSTCOMPILE += mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d
+POSTCOMPILE += mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 
 CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 
 CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 

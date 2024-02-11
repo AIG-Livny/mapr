@@ -41,6 +41,8 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 	- static library:	`lib%.a`
 	- dynamic library:	`%.dll` or `%.so`
 
+- `PKG_SEARCH` - libraries to search in `pkg-config` and add flags 
+
 - `COMPILER` - (g++) - compiler binary
 
 - `SUBPROJECTS` - list of directories where subprojects's `Makefile`'s contains. Example:
@@ -87,7 +89,7 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `RELEASE_COMMAND` - executed on `make release`
 
-# Makefile example of average project
+# Makefile example of project
 
 ```Makefile
 OUT_FILE        = bin/myproject
@@ -98,17 +100,15 @@ CFLAGS			= -g -O0 -std=c++20
 CFLAGS			+= -DDEBUG
 LINK_FLAGS 		= -stdlib=libstdc++
 
-INCLUDE_DIRS    += /usr/include/x86_64-linux-gnu/c++/12
-INCLUDE_DIRS    += /usr/include/c++/12
-INCLUDE_DIRS    += lib/imgui/include
 INCLUDE_DIRS    += include
+INCLUDE_DIRS    += lib/imgui/include
 
 LIB_DIRS        += /usr/lib/x86_64-linux-gnu
 LIB_DIRS        += lib/imgui/bin
 
-LIBS            += glfw
-LIBS            += GLEW
-LIBS            += GL
+PKG_SEARCH      += glfw3
+PKG_SEARCH      += glew
+
 LIBS            += imgui
 
 SUBPROJECTS		+= lib/imgui
@@ -127,5 +127,4 @@ download:
 endif
 
 -include $(COMMON_MK_PATH) 
-
 ```
