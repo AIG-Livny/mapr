@@ -85,7 +85,11 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `PRELINK` - command be executed before linking
 
-- `POSTLINK` - command be executed after linking
+- `PRECOMPILE` - command be executed before compile
+
+- `POSTLINK` - command be executed after linking. Must start with ";" or "&&" because it be appended to command line
+
+- `POSTCOMPILE` - command be executed after compile. Requirement same as previous 
 
 - `RELEASE_COMMAND` - executed on `make release`
 

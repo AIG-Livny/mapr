@@ -51,7 +51,7 @@ $(shell mkdir -p $(dir $(DEPS)) 2> /dev/null)
 $(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
 
 DEPFLAGS 	= -MT $@ -MD -MP -MF $(OBJ_PATH)/$*.Td
-POSTCOMPILE += mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
+POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 
 CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 
 CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 
@@ -59,12 +59,12 @@ CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_M
 CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $(LIB_DIRS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS)
 CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS)
 
-COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) ; $(POSTCOMPILE)
+COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
 COMPILE.cc 		= $(COMPILE.c)
-COMPILE.ccm 	= @echo $(call color_text,95,Module): $@ ; $(PRECOMPILE) $(CMD.COMPILE_CCM) ; $(POSTCOMPILE)
-LINK.shared 	= @echo $(call color_text,33,Linking shared): $@ ; $(PRELINK) $(CMD.LINK_SHARED) ; $(POSTLINK)
-LINK.static 	= @echo $(call color_text,33,Linking static): $@ ; $(PRELINK) $(CMD.LINK_STATIC) ; $(POSTLINK)
-LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK) $(CMD.LINK_EXEC) ; $(POSTLINK)
+COMPILE.ccm 	= @echo $(call color_text,95,Module): $@ ; $(PRECOMPILE) $(CMD.COMPILE_CCM) $(POSTCOMPILE)
+LINK.shared 	= @echo $(call color_text,33,Linking shared): $@ ; $(PRELINK) $(CMD.LINK_SHARED) $(POSTLINK)
+LINK.static 	= @echo $(call color_text,33,Linking static): $@ ; $(PRELINK) $(CMD.LINK_STATIC) $(POSTLINK)
+LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK) $(CMD.LINK_EXEC) $(POSTLINK)
 
 # always run multithread
 MAKEFLAGS += -j
