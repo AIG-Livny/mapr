@@ -24,12 +24,13 @@ LIB_DIRS 		:= $(addprefix -L, $(LIB_DIRS))
 INCLUDE_DIRS 	:= $(addprefix -I, $(INCLUDE_DIRS))
 LIBS 			:= $(addprefix -l, $(LIBS))
 
+
+ifneq ("$(PKG_SEARCH)","")
 ifneq (, $(shell which pkg-config))
 INCLUDE_DIRS    += $(shell pkg-config --cflags $(PKG_SEARCH))
 LIBS 			+= $(shell pkg-config --libs-only-l $(PKG_SEARCH))
 LIB_DIRS 		+= $(shell pkg-config --libs-only-L $(PKG_SEARCH))
 else
-ifneq ("$(PKG_SEARCH)","")
 $(error PKG_SEARCH present, but pkg-config not found!)
 endif
 endif
@@ -87,6 +88,7 @@ release: app
 
 clean:
 	@rm -rf ./$(OBJ_PATH)
+	@rm -rf ./mapr
 
 cleanall: clean subprojects.cleanall
 	@rm -rf ./$(OUT_FILE)
@@ -97,9 +99,11 @@ subprojects.%:
 	@$(SUBPROJECTS:%=$(MAKE) --no-print-directory -e -C % $* COMMON_MK_PATH=$(COMMON_MK_PATH);)
 
 $(basename $(OUT_FILE)): $(PRECOMPILED_MODULES) $(OBJECTS)
+	echo 2s
 	$(LINK.executable)
 
 lib%.a: $(OBJECTS)
+	echo 1
 	$(LINK.static)
 
 %.so %.dll: $(OBJECTS)
