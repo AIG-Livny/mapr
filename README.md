@@ -33,6 +33,8 @@ For subprojects need to create same makefile, but when make started from main di
 # Usage
 All configurations of project must be in Makefile, not in `mapr/common.mk`.
 
+`mapr` directory is recomended to place in `.gitignore` 
+
 ## Variables list
 Almost all variables is optional, except `OUT_FILE`. In bracets default value if exists.
 
