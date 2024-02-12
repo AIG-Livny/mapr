@@ -72,7 +72,7 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
     ```
 - `LIB_DIRS` - list directories where looking for libraries. Search is not recursive.
 
-- `INC_DIRS` - (include) - list directories where looking for headers. Search is not recursive.
+- `INCLUDE_DIRS` - (include) - list directories where looking for headers. Search is not recursive.
 
 - `SRC_DIRS` - (src) - list directories where looking for sources. Search is recursive (`!`).
 
