@@ -52,11 +52,24 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
     ```
     All subprojects recieves command via `subprojects.` prefix.
     ```
-    make subproject.all
-    make subproject.clean
+    make subprojects.all
+    make subprojects.clean
     ```
     Will pass `all` and `clean` commands.
 
+- `SUBPROJECT_LIBS` - list of subproject libs directories. This is subset of SUBPROJECTS, but it made for static libs. MaPr will automaticaly obtain '-I', '-L', '-l' options from each project.
+    
+    This line:
+    ```
+    SUBPROJECT_LIBS	+= lib/mathc
+    ```
+    is equivalent of this:
+    ```
+    SUBPROJECTS 	+= lib/mathc
+    INCLUDE_DIRS 	+= lib/mathc/mathc
+    LIB_DIRS 		+= lib/mathc/bin
+    LIBS 	 		+= mathc
+    ```
 - `LIB_DIRS` - list directories where looking for libraries. Search is not recursive.
 
 - `INC_DIRS` - (include) - list directories where looking for headers. Search is not recursive.
@@ -93,7 +106,7 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `RELEASE_COMMAND` - executed on `make release`
 
-# Makefile example of project
+# Makefile example
 
 ```Makefile
 OUT_FILE        = bin/myproject
@@ -104,18 +117,10 @@ CFLAGS			= -g -O0 -std=c++20
 CFLAGS			+= -DDEBUG
 LINK_FLAGS 		= -stdlib=libstdc++
 
-INCLUDE_DIRS    += include
-INCLUDE_DIRS    += lib/imgui/include
-
-LIB_DIRS        += /usr/lib/x86_64-linux-gnu
-LIB_DIRS        += lib/imgui/bin
+SUBPROJECT_LIBS += lib/imgui
 
 PKG_SEARCH      += glfw3
 PKG_SEARCH      += glew
-
-LIBS            += imgui
-
-SUBPROJECTS		+= lib/imgui
 
 # New size print
 PRELINK		= mv $(OUT_FILE) $(OUT_FILE)_old 2> /dev/null ;

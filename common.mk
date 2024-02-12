@@ -45,6 +45,24 @@ $(error PKG_SEARCH present, but pkg-config not found!)
 endif
 endif
 
+# Obtain targets from subprojects
+SUBPROJECT_TARGETS = $(foreach sp,$(SUBPROJECT_LIBS), \
+$(shell $(MAKE) --no-print-directory -e -C $(sp) name COMMON_MK_PATH=$(COMMON_MK_PATH))\
+)
+
+# Automatic obtain options from subproject libraries
+ifneq ("$(SUBPROJECT_LIBS)","")
+ALL_SP_OPTIONS = $(foreach sp,$(SUBPROJECT_LIBS), \
+$(shell $(MAKE) --no-print-directory -e -C $(sp) liboptions COMMON_MK_PATH=$(COMMON_MK_PATH))\
+)
+
+SP_INCLUDE_DIRS += $(filter -I%, $(ALL_SP_OPTIONS))
+SP_LIB_DIRS += $(filter -L%, $(ALL_SP_OPTIONS))
+SP_LIBS += $(filter -l%, $(ALL_SP_OPTIONS))
+endif
+
+SUBPROJECTS += $(SUBPROJECT_LIBS)
+
 # Project files
 SOURCES += $(foreach dr, $(SRC_DIRS), $(foreach ext, $(SRC_EXTS),  $(call rwildcard,$(dr),$(ext))))
 SOURCES := $(filter-out $(EXCLUDESRC),$(SOURCES))
@@ -64,11 +82,11 @@ $(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
 DEPFLAGS 	= -MT $@ -MD -MP -MF $(OBJ_PATH)/$*.Td
 POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 
-CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 
-CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) -c -o $@ $< 
-CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS)
-CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $(LIB_DIRS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS)
-CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS)
+CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
+CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS) $(SP_LIBS)
+CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 
 COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
 COMPILE.cc 		= $(COMPILE.c)
@@ -85,9 +103,6 @@ MAKEFLAGS += -j
 
 all: subprojects.all .WAIT app
 
-name:
-	@echo $(OUT_FILE)
-
 app: $(OUT_FILE)
 
 run: app
@@ -96,25 +111,43 @@ run: app
 release: app
 	$(RELEASE_COMMAND)
 
-clean:
+clean: subprojects.cleanmapr
 	@rm -rf ./$(OBJ_PATH)
+
+cleanmapr:
 	@rm -rf ./mapr
 
-cleanall: clean subprojects.cleanall
+cleanall: clean cleanmapr subprojects.cleanall
 	@rm -rf ./$(OUT_FILE)
 	@rm -rf ./release
 	@rm -rf ./$(dir $(OUT_FILE))
 
+name:
+	@echo $(abspath $(OUT_FILE))
+
+liboptions:
+	@echo \
+$(addprefix -I, $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
+-L$(dir $(abspath $(OUT_FILE))) \
+-l$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
+
 subprojects.%:
 	@$(SUBPROJECTS:%=$(MAKE) --no-print-directory -e -C % $* COMMON_MK_PATH=$(COMMON_MK_PATH);)
 
-$(basename $(OUT_FILE)): $(PRECOMPILED_MODULES) $(OBJECTS)
+# Empty target for doing nothing for subproject target, only watch for them products
+# and if they changes, main file (OBJ_PATH) will be rebuilded.
+# Subproject itself updated in "subproject.all" run
+# Also this target cannot be empty, so "echo" here like stub 
+$(SUBPROJECT_TARGETS):
+	@echo
+
+$(basename $(OUT_FILE)): $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.executable)
 
-lib%.a: $(OBJECTS)
+lib%.a: $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.static)
 
-%.so %.dll: $(OBJECTS)
+%.so %.dll: $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.shared)
 
 $(OBJ_PATH)/%.o: %.c
