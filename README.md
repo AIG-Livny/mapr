@@ -108,6 +108,20 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `RELEASE_COMMAND` - executed on `make release`
 
+# Third-party libraries
+Any third-party library can be placed into subdirectory, it doesn't change original files and thus replaces its build system.
+```
+___mapr
+___lib
+   |___somelib
+       |___somelib
+       |   |___...original folder
+       |___bin
+       |   |___binary of lib, builded by mapr
+       |___Makefile
+
+``` 
+
 # Makefile example
 
 ```Makefile
