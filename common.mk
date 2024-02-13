@@ -20,7 +20,6 @@ $(call default_variable ,INCLUDE_DIRS,include .)
 $(call default_variable ,OBJ_PATH,obj)
 $(call default_variable ,SRC_EXTS,*.cpp *.c)
 $(call default_variable ,COMPILER,g++)
-$(call default_variable ,AR,ar)
 $(call default_variable ,CFLAGS,-O3)
 $(call default_variable ,AR_FLAGS,rcs)
 
@@ -30,19 +29,15 @@ LIBS 			:= $(addprefix -l, $(LIBS))
 
 ifneq ("$(PKG_SEARCH)","")
 ifneq (, $(shell which pkg-config))
-INCLUDE_DIRS    += $(shell pkg-config --cflags 		$(PKG_SEARCH) 2>&1)
-LIBS 			+= $(shell pkg-config --libs-only-l $(PKG_SEARCH) 2>&1)
-LIB_DIRS 		+= $(shell pkg-config --libs-only-L $(PKG_SEARCH) 2>&1)
+ALL_FLAGS = $(shell pkg-config --cflags --libs $(PKG_SEARCH) 2>&1)
 
-ifneq (,$(findstring No package,$(INCLUDE_DIRS)))
-    $(error LIBRARY NOT FOUND $(INCLUDE_DIRS))
+ifneq (,$(findstring No package,$(ALL_FLAGS)))
+    $(error LIBRARY NOT FOUND \n $(ALL_FLAGS))
 endif
-ifneq (,$(findstring No package,$(LIBS)))
-    $(error LIBRARY NOT FOUND $(LIBS))
-endif
-ifneq (,$(findstring No package,$(LIB_DIRS)))
-    $(error LIBRARY NOT FOUND $(LIB_DIRS))
-endif
+
+INCLUDE_DIRS    += $(filter -I%, $(ALL_FLAGS))
+LIBS    		+= $(filter -l%, $(ALL_FLAGS))
+LIB_DIRS    	+= $(filter -L%, $(ALL_FLAGS))
 
 else
 $(error PKG_SEARCH present, but pkg-config not found!)
@@ -52,16 +47,14 @@ endif
 #Sub make options
 SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) CFLAGS="$(CFLAGS)"
 
-# Obtain targets from subprojects
-SUBPROJECT_TARGETS = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) name))
-
-# Automatic obtain options from subproject libraries
+## Automatic obtain options from subproject libraries
 ifneq ("$(SUBPROJECT_LIBS)","")
-ALL_SP_OPTIONS = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) liboptions))
-
-SP_INCLUDE_DIRS += $(filter -I%, $(ALL_SP_OPTIONS))
-SP_LIB_DIRS += $(filter -L%, $(ALL_SP_OPTIONS))
-SP_LIBS += $(filter -l%, $(ALL_SP_OPTIONS))
+ALL_VARS = = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
+SP_TARGETS 		+= $(subst NAM.,, $(filter NAM.%, $(ALL_VARS)))
+SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
+SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
+SP_LIBS			+= $(subst LIB.,-l, $(filter LIB.%, $(ALL_VARS)))
+SP_OBJECTS 		+= $(subst OBJ.,, $(filter OBJ.%, $(ALL_VARS)))
 endif
 
 SUBPROJECTS += $(SUBPROJECT_LIBS)
@@ -88,7 +81,7 @@ POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
-CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS) $(SP_LIBS)
+CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(SP_OBJECTS)
 CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 
 COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
@@ -118,7 +111,7 @@ clean: subprojects.cleanmapr
 cleanmapr:
 	@rm -rf ./mapr
 
-cleanall: clean subprojects.cleanall .WAIT cleanmapr
+cleanall: clean subprojects.cleanall #.WAIT cleanmapr
 ifneq ("$(dir $(OUT_FILE))","./")
 	@rm -rf $(dir $(OUT_FILE))
 else
@@ -129,11 +122,14 @@ endif
 name:
 	@echo $(abspath $(OUT_FILE))
 
-liboptions:
+# Return variables to use in upper level project
+vars:
 	@echo \
-$(addprefix -I, $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
--L$(dir $(abspath $(OUT_FILE))) \
--l$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
+$(addprefix INC., $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
+$(addprefix OBJ., $(abspath $(OBJECTS))) \
+LDR.$(dir $(abspath $(OUT_FILE))) \
+NAM.$(abspath $(OUT_FILE)) \
+LIB.$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
 
 # Target to call targets in subs
 subprojects.%:
@@ -146,16 +142,16 @@ $(SUBPROJECTS):
 # Empty target for doing nothing for subproject target, only watch for them products
 # and if they changes, main file (OBJ_PATH) will be rebuilded.
 # Subproject itself updated in "subproject.all" run
-$(SUBPROJECT_TARGETS):
+$(SP_TARGETS):
 	@echo > /dev/null
 
-$(basename $(OUT_FILE)): $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
+$(basename $(OUT_FILE)): $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.executable)
 
-lib%.a: $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
+lib%.a: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.static)
 
-%.so %.dll: $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
+%.so %.dll: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.shared)
 
 $(OBJ_PATH)/%.o: %.c
