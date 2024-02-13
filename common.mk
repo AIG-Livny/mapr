@@ -99,9 +99,9 @@ LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK
 MAKEFLAGS += -j
 
 # Artificial targets
-.PHONY: all app clean cleanall test run release
+.PHONY: all app clean cleanall test run release compile $(SUBPROJECTS)
 
-all: subprojects.all .WAIT app
+all: $(SUBPROJECTS) .WAIT app
 
 app: $(OUT_FILE)
 
@@ -134,15 +134,21 @@ $(addprefix -I, $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
 -L$(dir $(abspath $(OUT_FILE))) \
 -l$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
 
+SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH)
+
+# Target to call targets in subs
 subprojects.%:
-	@$(SUBPROJECTS:%=$(MAKE) --no-print-directory -e -s -C % $* COMMON_MK_PATH=$(COMMON_MK_PATH);)
+	@$(SUBPROJECTS:%=$(MAKE) $(SP_OPTIONS) -C % $* ;)
+
+# Target for building subs
+$(SUBPROJECTS):
+	@$(MAKE) $(SP_OPTIONS) -C $@
 
 # Empty target for doing nothing for subproject target, only watch for them products
 # and if they changes, main file (OBJ_PATH) will be rebuilded.
 # Subproject itself updated in "subproject.all" run
-# Also this target cannot be empty, so "echo" here like stub 
 $(SUBPROJECT_TARGETS):
-	@echo
+	@echo > /dev/null
 
 $(basename $(OUT_FILE)): $(SUBPROJECT_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.executable)
