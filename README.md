@@ -19,9 +19,9 @@ OUT_FILE        = bin/bin-name
 
 COMMON_MK_PATH = $(CURDIR)/mapr/common.mk
 ifeq ("$(wildcard $(COMMON_MK_PATH))","")
-download:
+%:
 	@git clone https://github.com/AIG-Livny/mapr.git
-	$(MAKE)
+	$(MAKE) $(MAKECMDGOALS)
 endif
 
 -include $(COMMON_MK_PATH) 
@@ -148,9 +148,9 @@ POSTLINK	= ; ./size.sh $(OUT_FILE) $(OUT_FILE)_old ; rm -f $(OUT_FILE)_old
 
 COMMON_MK_PATH = $(CURDIR)/mapr/common.mk
 ifeq ("$(wildcard $(COMMON_MK_PATH))","")
-download:
+%:
 	@git clone https://github.com/AIG-Livny/mapr.git
-	$(MAKE)
+	$(MAKE) $(MAKECMDGOALS)
 endif
 
 -include $(COMMON_MK_PATH) 
