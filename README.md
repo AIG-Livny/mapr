@@ -28,7 +28,7 @@ endif
 ```
 
 If `mapr` doesn't exist it will be downloaded. 
-For subprojects need to create same makefile, but when make started from main directory, subprojects will not download mapr copy. All subprojects will use the main `mapr`. This scheme was made for building any subproject separately. Only when you `cd` into any subproject and run `make` will be downloaded new mapr copy. By return to main directory, the main `mapr` engages again.
+For subprojects need to create same makefile, but when make started from main directory, subprojects will not download mapr copy. All subprojects will use the main `mapr`. This scheme was made for building any subproject separately. Only when you `cd` into any subproject and run `make` will be downloaded new mapr copy. By returning to main directory, the main `mapr` engages again.
 
 # Usage
 All configurations of project must be in Makefile, not in `mapr/common.mk`.
@@ -84,7 +84,9 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `LINK_FLAGS` - link stage flags
 
-- `CFLAGS` - (-O3) - compile stage flags
+- `CFLAGS` - (-O3) - compile stage flags. It is global variable that be passed to subprojects and rewrite local `CFLAGS` variable. To use private flags see `LOCAL_CFLAGS`
+
+- `LOCAL_CFLAGS` - compile stage flags. These flags affects on only local project and not will passed into subprojects.
 
 - `SOURCES` - list of source files. Can be used to specify files that can not be found by recursive search. In example: sertain source file from other project, without any excess sources.
 

@@ -6,7 +6,11 @@ default_variable = $(if $(value $(1)),, $(eval $(1) = $(2)))
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # Colorful text Win/Lin
-color_text = $(if $(filter Windows_NT, $(OS)),"[$(1)m$(2)[0m","\\033[$(1)m$(2)\\033[0m")
+ifneq ("$(filter Windows_NT, $(OS)"),"")
+color_text = "[$(1)m$(2)[0m"
+else
+color_text = "\\033[$(1)m$(2)\\033[0m"
+endif
 
 # Variables checking, setting defaults
 $(call check_variable ,OUT_FILE)
@@ -45,16 +49,15 @@ $(error PKG_SEARCH present, but pkg-config not found!)
 endif
 endif
 
+#Sub make options
+SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) CFLAGS="$(CFLAGS)"
+
 # Obtain targets from subprojects
-SUBPROJECT_TARGETS = $(foreach sp,$(SUBPROJECT_LIBS), \
-$(shell $(MAKE) --no-print-directory -e -C $(sp) name COMMON_MK_PATH=$(COMMON_MK_PATH))\
-)
+SUBPROJECT_TARGETS = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) name))
 
 # Automatic obtain options from subproject libraries
 ifneq ("$(SUBPROJECT_LIBS)","")
-ALL_SP_OPTIONS = $(foreach sp,$(SUBPROJECT_LIBS), \
-$(shell $(MAKE) --no-print-directory -e -C $(sp) liboptions COMMON_MK_PATH=$(COMMON_MK_PATH))\
-)
+ALL_SP_OPTIONS = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) liboptions))
 
 SP_INCLUDE_DIRS += $(filter -I%, $(ALL_SP_OPTIONS))
 SP_LIB_DIRS += $(filter -L%, $(ALL_SP_OPTIONS))
@@ -82,8 +85,8 @@ $(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
 DEPFLAGS 	= -MT $@ -MD -MP -MF $(OBJ_PATH)/$*.Td
 POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 
-CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
-CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS) $(SP_LIBS)
 CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
@@ -131,8 +134,6 @@ liboptions:
 $(addprefix -I, $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
 -L$(dir $(abspath $(OUT_FILE))) \
 -l$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
-
-SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH)
 
 # Target to call targets in subs
 subprojects.%:
