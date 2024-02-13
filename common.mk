@@ -12,7 +12,7 @@ color_text = $(if $(filter Windows_NT, $(OS)),"[$(1)m$(2)[0m","\\033[$(1)m$(2)
 $(call check_variable ,OUT_FILE)
 $(call default_variable ,SRC_DIRS,src)
 $(call default_variable ,MODULES_DIRS,modules)
-$(call default_variable ,INCLUDE_DIRS,include .)
+$(call default_variable ,INCLUDE_DIRS,. include)
 $(call default_variable ,OBJ_PATH,obj)
 $(call default_variable ,SRC_EXTS,*.cpp *.c)
 $(call default_variable ,COMPILER,g++)
@@ -85,7 +85,7 @@ POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
 CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
-CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS) $(SP_LIBS)
+CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(LIBS) $(SP_LIBS)
 CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 
 COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
@@ -117,13 +117,10 @@ clean: subprojects.cleanmapr
 cleanmapr:
 	@rm -rf ./mapr
 
-cleanall: clean subprojects.cleanall #.WAIT cleanmapr
-ifneq ("$(dir $(OUT_FILE))","./")
-	@rm -rf $(dir $(OUT_FILE))
-else
-	@rm -f $(OUT_FILE)
-endif
+cleanall: clean cleanmapr subprojects.cleanall
+	@rm -rf ./$(OUT_FILE)
 	@rm -rf ./release
+	@rm -rf ./$(dir $(OUT_FILE))
 
 name:
 	@echo $(abspath $(OUT_FILE))
@@ -135,7 +132,7 @@ $(addprefix -I, $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
 -l$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
 
 subprojects.%:
-	@$(SUBPROJECTS:%=$(MAKE) --no-print-directory -e -s -C % $* COMMON_MK_PATH=$(COMMON_MK_PATH);)
+	@$(SUBPROJECTS:%=$(MAKE) --no-print-directory -e -C % $* COMMON_MK_PATH=$(COMMON_MK_PATH);)
 
 # Empty target for doing nothing for subproject target, only watch for them products
 # and if they changes, main file (OBJ_PATH) will be rebuilded.

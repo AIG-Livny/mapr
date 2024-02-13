@@ -13,7 +13,7 @@ For simple and complex projects with subprojects in it.
 # Quick start
 Create `src/main.c` and `Makefile` with this content and run `make`
 ```Makefile
-OUT_FILE        = bin-name
+OUT_FILE        = bin/bin-name
 
 #-----------FOOTER-----------
 
