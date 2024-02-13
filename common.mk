@@ -101,14 +101,12 @@ MAKEFLAGS += -j
 # Artificial targets
 .PHONY: all app clean cleanall test run release compile $(SUBPROJECTS)
 
-all: $(SUBPROJECTS) .WAIT app
+all: $(SUBPROJECTS) .WAIT $(OUT_FILE)
 
-app: $(OUT_FILE)
-
-run: app
+run: all
 	@$(OUT_FILE)
 
-release: app
+release: all
 	$(RELEASE_COMMAND)
 
 clean: subprojects.cleanmapr
