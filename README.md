@@ -1,19 +1,13 @@
-# MaPr v.0.5
+# MaPr v.0.6
 
 (Ma)ke (Pr)oject - GCC/clang project building system. 
 
 For simple and complex projects with subprojects in it. 
 
-# Features
-- Pass any commands to subprojects: `clean`, `all`... and to its subprojects and so on.
-- Detects build type by name. (library, shared library, executable)
-- Find sources recursive
-- Add and exclude sertain sources
-
 # Quick start
 Create `src/main.c` and `Makefile` with this content and run `make`
 ```Makefile
-OUT_FILE        = bin/bin-name
+OUT_FILE        = bin-name
 
 #-----------FOOTER-----------
 
@@ -26,6 +20,14 @@ endif
 
 -include $(COMMON_MK_PATH) 
 ```
+
+# Features
+- Pass any commands to subprojects: `clean`, `all`... and to its subprojects and so on.
+- Detects build type by name. (library, shared library, executable)
+- Find sources recursive
+- Add and exclude sertain sources
+- Store object files in one directory and support "../" - paths. Resolves "../mydir" as "obj/mydir"
+- Find and automatically use libraries with `pkg-config`
 
 If `mapr` doesn't exist it will be downloaded. 
 For subprojects need to create same makefile, but when make started from main directory, subprojects will not download mapr copy. All subprojects will use the main `mapr`. This scheme was made for building any subproject separately. Only when you `cd` into any subproject and run `make` will be downloaded new mapr copy. By returning to main directory, the main `mapr` engages again.
@@ -116,13 +118,26 @@ Any third-party library can be placed into subdirectory, it doesn't change origi
 ___mapr
 ___lib
    |___somelib
-       |___somelib
-       |   |___...original folder
+       |___somelib  (original lib folder)
+       |
        |___bin
        |   |___binary of lib, builded by mapr
+       |
        |___Makefile
-
 ``` 
+or even:
+```
+___mapr
+___lib
+   |___third-party
+   |   |___somelib  (original lib folder)
+   |
+   |___somelib 
+       |___bin
+       |   |___binary of lib, builded by mapr
+       |
+       |___Makefile
+```
 
 # Makefile example
 

@@ -1,3 +1,8 @@
+#
+#	MaPr - (ma)ke (pr)oject build system
+#	AIG <AIG.Livny@gmail.com>  
+#
+
 # Assert variable / set default value if not set
 check_variable = $(if $(value $(1)),, $(error $(1) not defined))
 default_variable = $(if $(value $(1)),, $(eval $(1) = $(2)))
@@ -62,21 +67,15 @@ SUBPROJECTS += $(SUBPROJECT_LIBS)
 # Project files
 SOURCES += $(foreach dr, $(SRC_DIRS), $(foreach ext, $(SRC_EXTS),  $(call rwildcard,$(dr),$(ext))))
 SOURCES := $(filter-out $(EXCLUDESRC),$(SOURCES))
-OBJECTS = $(foreach src, $(SOURCES),$(OBJ_PATH)/$(basename $(src)).o)
+OBJECTS = $(foreach src, $(SOURCES),$(OBJ_PATH)/$(subst ../,,$(basename $(src))).o)
 DEPS    = $(OBJECTS:%.o=%.d)
 
 # Modules
 MODULES += $(foreach dr, $(MODULES_DIRS), $(call rwildcard,$(dr),*.ccm))
-PRECOMPILED_MODULES = $(foreach mod, $(MODULES), $(OBJ_PATH)/$(basename $(mod)).pcm)
+PRECOMPILED_MODULES = $(foreach mod, $(MODULES), $(OBJ_PATH)/$(subst ../,,$(basename $(mod))).pcm)
 
-# Making directories
-$(shell mkdir -p $(dir $(OUT_FILE)) 2> /dev/null)
-$(shell mkdir -p $(dir $(OBJECTS)) 2> /dev/null)
-$(shell mkdir -p $(dir $(DEPS)) 2> /dev/null)
-$(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
-
-DEPFLAGS 	= -MT $@ -MD -MP -MF $(OBJ_PATH)/$*.Td
-POSTCOMPILE += && mv -f $(OBJ_PATH)/$*.Td $(OBJ_PATH)/$*.d 2>/dev/null
+DEPFLAGS 	= -MT $@ -MD -MP -MF $*.Td
+POSTCOMPILE += && mv -f $*.Td $*.d 2>/dev/null
 
 CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
 CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
@@ -95,9 +94,15 @@ LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK
 MAKEFLAGS += -j
 
 # Artificial targets
-.PHONY: all app clean cleanall test run release compile $(SUBPROJECTS)
+.PHONY: all app clean cleanall test run release compile makedirs $(SUBPROJECTS)
 
-all: $(SUBPROJECTS) .WAIT $(OUT_FILE)
+all: $(SUBPROJECTS) makedirs .WAIT $(OUT_FILE)
+
+makedirs:
+	$(shell mkdir -p $(dir $(OUT_FILE)) 2> /dev/null)
+	$(shell mkdir -p $(dir $(OBJECTS)) 2> /dev/null)
+	$(shell mkdir -p $(dir $(DEPS)) 2> /dev/null)
+	$(shell mkdir -p $(dir $(PRECOMPILED_MODULES)) 2> /dev/null)
 
 run: all
 	@$(OUT_FILE)
@@ -105,7 +110,7 @@ run: all
 release: all
 	$(RELEASE_COMMAND)
 
-clean: subprojects.cleanmapr
+clean: subprojects.clean subprojects.cleanmapr
 	@rm -rf ./$(OBJ_PATH)
 
 cleanmapr:
@@ -142,8 +147,7 @@ $(SUBPROJECTS):
 # Empty target for doing nothing for subproject target, only watch for them products
 # and if they changes, main file (OBJ_PATH) will be rebuilded.
 # Subproject itself updated in "subproject.all" run
-$(SP_TARGETS):
-	@echo > /dev/null
+$(SP_TARGETS): ;
 
 $(basename $(OUT_FILE)): $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.executable)
@@ -154,16 +158,16 @@ lib%.a: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 %.so %.dll: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.shared)
 
-$(OBJ_PATH)/%.o: %.c
+%.o: $(filter %.c, $(SOURCES))
 	$(COMPILE.c)
 
-$(OBJ_PATH)/%.o: %.cpp $(PRECOMPILED_MODULES)
+%.o: $(filter %.cpp, $(SOURCES)) $(PRECOMPILED_MODULES)
 	$(COMPILE.cc)
 
-$(OBJ_PATH)/%.o: %.cc $(PRECOMPILED_MODULES)
+%.o: $(filter %.cc, $(SOURCES)) $(PRECOMPILED_MODULES)
 	$(COMPILE.cc)
 
-$(OBJ_PATH)/%.pcm: %.ccm
+%.pcm: $(MODULES)
 	$(COMPILE.ccm)
 
 # Do not delete intermediate files
