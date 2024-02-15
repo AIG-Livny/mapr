@@ -55,7 +55,7 @@ SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) CFLAGS=
 
 ## Automatic obtain options from subproject libraries
 ifneq ("$(SUBPROJECT_LIBS)","")
-ALL_VARS = = $(foreach sp,$(SUBPROJECT_LIBS), $(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
+ALL_VARS = $(foreach sp,$(SUBPROJECT_LIBS),$(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
 SP_TARGETS 		+= $(subst NAM.,, $(filter NAM.%, $(ALL_VARS)))
 SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
 SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
