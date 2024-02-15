@@ -65,7 +65,8 @@ endif
 SUBPROJECTS += $(SUBPROJECT_LIBS)
 
 # Project files
-SOURCES += $(foreach dr, $(SRC_DIRS), $(foreach ext, $(SRC_EXTS),  $(call rwildcard,$(dr),$(ext))))
+SOURCES += $(foreach dr,$(SRC_RECURSIVE_DIRS),$(foreach ext,$(SRC_EXTS),$(call rwildcard,$(dr),$(ext))))
+SOURCES += $(foreach dr,$(SRC_DIRS),$(foreach ext,$(SRC_EXTS),$(wildcard $(dr)/$(ext))))
 SOURCES := $(filter-out $(EXCLUDESRC),$(SOURCES))
 OBJECTS = $(foreach src, $(SOURCES),$(OBJ_PATH)/$(subst ../,,$(basename $(src))).o)
 DEPS    = $(OBJECTS:%.o=%.d)

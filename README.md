@@ -1,4 +1,4 @@
-# MaPr v.0.6
+# MaPr v.0.7
 
 (Ma)ke (Pr)oject - GCC/clang project building system. 
 
@@ -74,15 +74,17 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
     LIB_DIRS 		+= lib/mathc/bin
     LIBS 	 		+= mathc
     ```
-- `LIB_DIRS` - list directories where looking for libraries. Search is not recursive.
+- `LIB_DIRS` - list directories where looking for libraries
 
-- `INCLUDE_DIRS` - (include) - list directories where looking for headers. Search is not recursive.
+- `INCLUDE_DIRS` - (include) - list directories where looking for headers
 
-- `SRC_DIRS` - (src) - list directories where looking for sources. Search is recursive (`!`).
+- `SRC_DIRS` - (src) - list directories where looking for sources 
 
-- `OBJ_PATH` - (obj) - where to store object files.
+- `SRC_RECURSIVE_DIRS` - list directories where starts recursive search of sources
 
 - `SRC_EXTS` - (*.cpp *.c) - source extensions
+
+- `OBJ_PATH` - (obj) - where to store object files.
 
 - `LINK_FLAGS` - link stage flags
 
