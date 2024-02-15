@@ -22,6 +22,7 @@ $(call check_variable ,OUT_FILE)
 $(call default_variable ,SRC_DIRS,src)
 $(call default_variable ,MODULES_DIRS,modules)
 $(call default_variable ,INCLUDE_DIRS,include .)
+$(call default_variable ,PUBLIC_INCLUDE_DIRS,$(INCLUDE_DIRS))
 $(call default_variable ,OBJ_PATH,obj)
 $(call default_variable ,SRC_EXTS,*.cpp *.c)
 $(call default_variable ,COMPILER,g++)
@@ -131,7 +132,7 @@ name:
 # Return variables to use in upper level project
 vars:
 	@echo \
-$(addprefix INC., $(abspath $(subst -I,,$(INCLUDE_DIRS) $(SRC_DIRS)))) \
+$(addprefix INC., $(abspath $(PUBLIC_INCLUDE_DIRS))) \
 $(addprefix OBJ., $(abspath $(OBJECTS))) \
 LDR.$(dir $(abspath $(OUT_FILE))) \
 NAM.$(abspath $(OUT_FILE)) \

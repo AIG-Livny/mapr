@@ -1,4 +1,4 @@
-# MaPr v.0.7
+# MaPr v.0.8
 
 (Ma)ke (Pr)oject - GCC/clang project building system. 
 
@@ -77,6 +77,8 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 - `LIB_DIRS` - list directories where looking for libraries
 
 - `INCLUDE_DIRS` - (include) - list directories where looking for headers
+
+- `PUBLIC_INCLUDE_DIRS` - (INCLUDE_DIRS) - if specified upper project will get only these directories automatically. This variable is for dividing private and public includes.
 
 - `SRC_DIRS` - (src) - list directories where looking for sources 
 
