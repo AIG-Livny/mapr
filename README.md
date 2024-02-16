@@ -47,7 +47,9 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `PKG_SEARCH` - libraries to search in `pkg-config` and add flags 
 
-- `COMPILER` - (g++) - compiler binary
+- `COMPILER` - (g++) - compiler, global variable, come from main project
+
+- `LOCAL_COMPILER` - (COMPILER) - be used if present ignoring COMPILER var. 
 
 - `SUBPROJECTS` - list of directories where subprojects's `Makefile`'s contains. Example:
     ```
@@ -74,17 +76,18 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
     LIB_DIRS 		+= lib/mathc/bin
     LIBS 	 		+= mathc
     ```
-- `LIB_DIRS` - list directories where looking for libraries
-
-- `INCLUDE_DIRS` - (include) - list directories where looking for headers
-
-- `PUBLIC_INCLUDE_DIRS` - (INCLUDE_DIRS) - if specified upper project will get only these directories automatically. This variable is for dividing private and public includes.
 
 - `SRC_DIRS` - (src) - list directories where looking for sources 
 
 - `SRC_RECURSIVE_DIRS` - list directories where starts recursive search of sources
 
 - `SRC_EXTS` - (*.cpp *.c) - source extensions
+
+- `INCLUDE_DIRS` - (SRC_DIRS) - list directories where looking for headers
+
+- `PUBLIC_INCLUDE_DIRS` - (INCLUDE_DIRS) - if specified upper project will get only these directories automatically. This variable is for dividing private and public includes.
+
+- `LIB_DIRS` - list directories where looking for libraries
 
 - `OBJ_PATH` - (obj) - where to store object files.
 
@@ -101,6 +104,8 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 - `MODULES_DIRS` - list of clang modules directories
 
 - `MODULES` - list of clang modules. Same as `SOURCES` variable
+
+- `AR` - archiver
 
 - `AR_FLAGS` - archivier flags
 

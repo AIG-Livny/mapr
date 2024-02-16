@@ -21,11 +21,12 @@ endif
 $(call check_variable ,OUT_FILE)
 $(call default_variable ,SRC_DIRS,src)
 $(call default_variable ,MODULES_DIRS,modules)
-$(call default_variable ,INCLUDE_DIRS,include .)
+$(call default_variable ,INCLUDE_DIRS,$(SRC_DIRS))
 $(call default_variable ,PUBLIC_INCLUDE_DIRS,$(INCLUDE_DIRS))
 $(call default_variable ,OBJ_PATH,obj)
 $(call default_variable ,SRC_EXTS,*.cpp *.c)
 $(call default_variable ,COMPILER,g++)
+$(call default_variable ,LOCAL_COMPILER,$(COMPILER))
 $(call default_variable ,CFLAGS,-O3)
 $(call default_variable ,AR_FLAGS,rcs)
 
@@ -51,7 +52,7 @@ endif
 endif
 
 #Sub make options
-SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) CFLAGS="$(CFLAGS)"
+SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) COMPILER=$(COMPILER) CFLAGS="$(CFLAGS)"
 
 ## Automatic obtain options from subproject libraries
 ifneq ("$(SUBPROJECT_LIBS)","")
@@ -79,11 +80,11 @@ PRECOMPILED_MODULES = $(foreach mod, $(MODULES), $(OBJ_PATH)/$(subst ../,,$(base
 DEPFLAGS 	= -MT $@ -MD -MP -MF $*.Td
 POSTCOMPILE += && mv -f $*.Td $*.d 2>/dev/null
 
-CMD.COMPILE_C   	= $(COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
-CMD.COMPILE_CCM   	= $(COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
-CMD.LINK_SHARED		= $(COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
+CMD.COMPILE_C   	= $(LOCAL_COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.COMPILE_CCM   	= $(LOCAL_COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.LINK_SHARED		= $(LOCAL_COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(SP_OBJECTS)
-CMD.LINK_EXEC		= $(COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
+CMD.LINK_EXEC		= $(LOCAL_COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 
 COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
 COMPILE.cc 		= $(COMPILE.c)
@@ -148,7 +149,6 @@ $(SUBPROJECTS):
 
 # Empty target for doing nothing for subproject target, only watch for them products
 # and if they changes, main file (OBJ_PATH) will be rebuilded.
-# Subproject itself updated in "subproject.all" run
 $(SP_TARGETS): ;
 
 $(basename $(OUT_FILE)): $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
