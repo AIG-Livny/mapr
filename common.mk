@@ -3,6 +3,12 @@
 #	AIG <AIG.Livny@gmail.com>  
 #
 
+# always run multithread
+MAKEFLAGS += -j
+
+# no built-in rules
+MAKEFLAGS += -r
+
 # Assert variable / set default value if not set
 check_variable = $(if $(value $(1)),, $(error $(1) not defined))
 default_variable = $(if $(value $(1)),, $(eval $(1) = $(2)))
@@ -55,16 +61,16 @@ endif
 SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) COMPILER=$(COMPILER) CFLAGS="$(CFLAGS)"
 
 ## Automatic obtain options from subproject libraries
-ifneq ("$(SUBPROJECT_LIBS)","")
+ifdef SUBPROJECT_LIBS
 ALL_VARS = $(foreach sp,$(SUBPROJECT_LIBS),$(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
 SP_TARGETS 		+= $(subst NAM.,, $(filter NAM.%, $(ALL_VARS)))
 SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
 SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
 SP_LIBS			+= $(subst LIB.,-l, $(filter LIB.%, $(ALL_VARS)))
 SP_OBJECTS 		+= $(subst OBJ.,, $(filter OBJ.%, $(ALL_VARS)))
-endif
 
 SUBPROJECTS += $(SUBPROJECT_LIBS)
+endif
 
 # Project files
 SOURCES += $(foreach dr,$(SRC_RECURSIVE_DIRS),$(foreach ext,$(SRC_EXTS),$(call rwildcard,$(dr),$(ext))))
@@ -93,8 +99,15 @@ LINK.shared 	= @echo $(call color_text,33,Linking shared): $@ ; $(PRELINK) $(CMD
 LINK.static 	= @echo $(call color_text,33,Linking static): $@ ; $(PRELINK) $(CMD.LINK_STATIC) $(POSTLINK)
 LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK) $(CMD.LINK_EXEC) $(POSTLINK)
 
-# always run multithread
-MAKEFLAGS += -j
+# Print debug information to mapr/debug.log
+ifdef DEBUG
+$(shell echo OUT_FILE=$(OUT_FILE): \
+MAKECMDGOALS=$(MAKECMDGOALS) \
+SP_TARGETS=$(SP_TARGETS) \
+SUBPROJECTS=$(SUBPROJECTS) \
+ALL_VARS=$(ALL_VARS) \
+>> $(dir $(COMMON_MK_PATH))/debug.log)
+endif #DEBUG
 
 # Artificial targets
 .PHONY: all app clean cleanall test run release compile makedirs $(SUBPROJECTS)
