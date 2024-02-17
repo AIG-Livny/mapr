@@ -35,6 +35,8 @@ For subprojects need to create same makefile, but when make started from main di
 # Usage
 All configurations of project must be in Makefile, not in `mapr/common.mk`.
 
+There is debug feature to print messages to log `mapr/debug.log`. Add `DEBUG = 1` into Makefile to enable debug mode.
+
 `mapr` directory is recomended to place in `.gitignore` 
 
 ## Variables list
@@ -85,7 +87,9 @@ Almost all variables is optional, except `OUT_FILE`. In bracets default value if
 
 - `INCLUDE_DIRS` - (SRC_DIRS) - list directories where looking for headers
 
-- `PUBLIC_INCLUDE_DIRS` - (INCLUDE_DIRS) - if specified upper project will get only these directories automatically. This variable is for dividing private and public includes.
+- `EXPORT_INCLUDE_DIRS` - (INCLUDE_DIRS) - if specified upper project will get only these directories automatically. This variable is for dividing private and public includes.
+
+- `EXPORT_DEFINITIONS` - list of definitions that will be sended to upper project. In example: you have library with `#ifdef` statements, you configure and build library as independent project. When upper project will include `.h`, he will not to know about any definitions that was used during building library, so `EXPORT_DEFINITIONS` can pass them up. These definitions also used in building project itself.
 
 - `LIB_DIRS` - list directories where looking for libraries
 

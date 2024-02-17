@@ -28,7 +28,7 @@ $(call check_variable ,OUT_FILE)
 $(call default_variable ,SRC_DIRS,src)
 $(call default_variable ,MODULES_DIRS,modules)
 $(call default_variable ,INCLUDE_DIRS,$(SRC_DIRS))
-$(call default_variable ,PUBLIC_INCLUDE_DIRS,$(INCLUDE_DIRS))
+$(call default_variable ,EXPORT_INCLUDE_DIRS,$(INCLUDE_DIRS))
 $(call default_variable ,OBJ_PATH,obj)
 $(call default_variable ,SRC_EXTS,*.cpp *.c)
 $(call default_variable ,COMPILER,g++)
@@ -58,7 +58,11 @@ endif
 endif
 
 #Sub make options
-SP_OPTIONS = --no-print-directory -e -s COMMON_MK_PATH=$(COMMON_MK_PATH) COMPILER=$(COMPILER) CFLAGS="$(CFLAGS)"
+SP_OPTIONS += --no-print-directory -e -s
+SP_OPTIONS += DEBUG=$(DEBUG)
+SP_OPTIONS += COMMON_MK_PATH=$(COMMON_MK_PATH)
+SP_OPTIONS += COMPILER=$(COMPILER)
+SP_OPTIONS += CFLAGS="$(CFLAGS)"
 
 ## Automatic obtain options from subproject libraries
 ifdef SUBPROJECT_LIBS
@@ -68,9 +72,13 @@ SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
 SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
 SP_LIBS			+= $(subst LIB.,-l, $(filter LIB.%, $(ALL_VARS)))
 SP_OBJECTS 		+= $(subst OBJ.,, $(filter OBJ.%, $(ALL_VARS)))
+LOCAL_CFLAGS	+= $(subst EXD.,-D, $(filter EXD.%, $(ALL_VARS)))
 
 SUBPROJECTS += $(SUBPROJECT_LIBS)
 endif
+
+# Add export defs to our target too
+LOCAL_CFLAGS += $(addprefix -D,$(EXPORT_DEFINITIONS))
 
 # Project files
 SOURCES += $(foreach dr,$(SRC_RECURSIVE_DIRS),$(foreach ext,$(SRC_EXTS),$(call rwildcard,$(dr),$(ext))))
@@ -106,6 +114,8 @@ MAKECMDGOALS=$(MAKECMDGOALS) \
 SP_TARGETS=$(SP_TARGETS) \
 SUBPROJECTS=$(SUBPROJECTS) \
 ALL_VARS=$(ALL_VARS) \
+EXPORT_DEFINITIONS=$(EXPORT_DEFINITIONS) \
+LOCAL_CFLAGS=$(LOCAL_CFLAGS) \
 >> $(dir $(COMMON_MK_PATH))/debug.log)
 endif #DEBUG
 
@@ -146,11 +156,12 @@ name:
 # Return variables to use in upper level project
 vars:
 	@echo \
-$(addprefix INC., $(abspath $(PUBLIC_INCLUDE_DIRS))) \
+$(addprefix INC., $(abspath $(EXPORT_INCLUDE_DIRS))) \
 $(addprefix OBJ., $(abspath $(OBJECTS))) \
 LDR.$(dir $(abspath $(OUT_FILE))) \
 NAM.$(abspath $(OUT_FILE)) \
-LIB.$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE))))
+LIB.$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE)))) \
+$(addprefix EXD.,$(EXPORT_DEFINITIONS))
 
 # Target to call targets in subs
 subprojects.%:
