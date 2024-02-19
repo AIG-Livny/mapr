@@ -40,6 +40,27 @@ LIB_DIRS 		:= $(addprefix -L, $(LIB_DIRS))
 INCLUDE_DIRS 	:= $(addprefix -I, $(INCLUDE_DIRS))
 LIBS 			:= $(addprefix -l, $(LIBS))
 
+#Sub make options
+SP_OPTIONS += --no-print-directory -e -s
+SP_OPTIONS += DEBUG=$(DEBUG)
+SP_OPTIONS += COMMON_MK_PATH=$(COMMON_MK_PATH)
+SP_OPTIONS += COMPILER=$(COMPILER)
+SP_OPTIONS += CFLAGS="$(CFLAGS)"
+
+## Automatic obtain options from subproject libraries
+ifdef SUBPROJECT_LIBS
+ALL_VARS = $(foreach sp,$(SUBPROJECT_LIBS),$(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
+SP_TARGETS 		+= $(subst NAM.,, $(filter NAM.%, $(ALL_VARS)))
+SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
+SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
+SP_LIBS			+= $(subst LIB.,-l, $(filter LIB.%, $(ALL_VARS)))
+SP_OBJECTS 		+= $(subst OBJ.,, $(filter OBJ.%, $(ALL_VARS)))
+LOCAL_CFLAGS	+= $(subst EXD.,-D, $(filter EXD.%, $(ALL_VARS)))
+PKG_SEARCH		+= $(subst PKG.,, $(filter PKG.%, $(ALL_VARS)))
+
+SUBPROJECTS += $(SUBPROJECT_LIBS)
+endif
+
 ifneq ("$(PKG_SEARCH)","")
 ifneq (, $(shell which pkg-config))
 ALL_FLAGS = $(shell pkg-config --cflags --libs $(PKG_SEARCH) 2>&1)
@@ -57,26 +78,6 @@ $(error PKG_SEARCH present, but pkg-config not found!)
 endif
 endif
 
-#Sub make options
-SP_OPTIONS += --no-print-directory -e -s
-SP_OPTIONS += DEBUG=$(DEBUG)
-SP_OPTIONS += COMMON_MK_PATH=$(COMMON_MK_PATH)
-SP_OPTIONS += COMPILER=$(COMPILER)
-SP_OPTIONS += CFLAGS="$(CFLAGS)"
-
-## Automatic obtain options from subproject libraries
-ifdef SUBPROJECT_LIBS
-ALL_VARS = $(foreach sp,$(SUBPROJECT_LIBS),$(shell $(MAKE) $(SP_OPTIONS) -C $(sp) vars))
-SP_TARGETS 		+= $(subst NAM.,, $(filter NAM.%, $(ALL_VARS)))
-SP_INCLUDE_DIRS += $(subst INC.,-I, $(filter INC.%, $(ALL_VARS)))
-SP_LIB_DIRS 	+= $(subst LDR.,-L, $(filter LDR.%, $(ALL_VARS)))
-SP_LIBS			+= $(subst LIB.,-l, $(filter LIB.%, $(ALL_VARS)))
-SP_OBJECTS 		+= $(subst OBJ.,, $(filter OBJ.%, $(ALL_VARS)))
-LOCAL_CFLAGS	+= $(subst EXD.,-D, $(filter EXD.%, $(ALL_VARS)))
-
-SUBPROJECTS += $(SUBPROJECT_LIBS)
-endif
-
 # Add export defs to our target too
 LOCAL_CFLAGS += $(addprefix -D,$(EXPORT_DEFINITIONS))
 
@@ -84,28 +85,29 @@ LOCAL_CFLAGS += $(addprefix -D,$(EXPORT_DEFINITIONS))
 SOURCES += $(foreach dr,$(SRC_RECURSIVE_DIRS),$(foreach ext,$(SRC_EXTS),$(call rwildcard,$(dr),$(ext))))
 SOURCES += $(foreach dr,$(SRC_DIRS),$(foreach ext,$(SRC_EXTS),$(wildcard $(dr)/$(ext))))
 SOURCES := $(filter-out $(EXCLUDESRC),$(SOURCES))
-OBJECTS = $(foreach src, $(SOURCES),$(OBJ_PATH)/$(subst ../,,$(basename $(src))).o)
-DEPS    = $(OBJECTS:%.o=%.d)
+OBJECTS = $(foreach src,$(SOURCES),$(OBJ_PATH)/$(subst ../,updir/,$(basename $(src))).o)
+DEPS    = $(OBJECTS:%.o=%.o.d)
 
 # Modules
 MODULES += $(foreach dr, $(MODULES_DIRS), $(call rwildcard,$(dr),*.ccm))
 PRECOMPILED_MODULES = $(foreach mod, $(MODULES), $(OBJ_PATH)/$(subst ../,,$(basename $(mod))).pcm)
 
-DEPFLAGS 	= -MT $@ -MD -MP -MF $*.Td
-POSTCOMPILE += && mv -f $*.Td $*.d 2>/dev/null
+DEPFLAGS 	= -MT $$@ -MMD -MP -MF $$@.d
 
-CMD.COMPILE_C   	= $(LOCAL_COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
-CMD.COMPILE_CCM   	= $(LOCAL_COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $@ $< 
+CMD.COMPILE_C   	= $(LOCAL_COMPILER) $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $$@ $$< 
+CMD.COMPILE_CCM   	= $(LOCAL_COMPILER) --precompile $(DEPFLAGS) $(CFLAGS) $(LOCAL_CFLAGS) $(INCLUDE_DIRS) $(SP_INCLUDE_DIRS) -c -o $$@ $$< 
 CMD.LINK_SHARED		= $(LOCAL_COMPILER) -shared $(LIB_DIRS) $(SP_LIB_DIRS) $(LINK_FLAGS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 CMD.LINK_STATIC		= $(AR) $(AR_FLAGS) $@ $(PRECOMPILED_MODULES) $(OBJECTS) $(SP_OBJECTS)
 CMD.LINK_EXEC		= $(LOCAL_COMPILER) $(LINK_FLAGS) $(LIB_DIRS) $(SP_LIB_DIRS) $(PRECOMPILED_MODULES) $(OBJECTS) -o $@ $(LIBS) $(SP_LIBS)
 
-COMPILE.c 		= @echo $(call color_text,94,Building): $@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
+TARGET_MSG = $(call color_text,36,Project): $(OUT_FILE): 
+
+COMPILE.c 		= @echo $(TARGET_MSG) $(call color_text,94,Building): $$@ ; $(PRECOMPILE) $(CMD.COMPILE_C) $(POSTCOMPILE)
 COMPILE.cc 		= $(COMPILE.c)
-COMPILE.ccm 	= @echo $(call color_text,95,Module): $@ ; $(PRECOMPILE) $(CMD.COMPILE_CCM) $(POSTCOMPILE)
-LINK.shared 	= @echo $(call color_text,33,Linking shared): $@ ; $(PRELINK) $(CMD.LINK_SHARED) $(POSTLINK)
-LINK.static 	= @echo $(call color_text,33,Linking static): $@ ; $(PRELINK) $(CMD.LINK_STATIC) $(POSTLINK)
-LINK.executable = @echo $(call color_text,32,Linking executable): $@ ; $(PRELINK) $(CMD.LINK_EXEC) $(POSTLINK)
+COMPILE.ccm 	= @echo $(TARGET_MSG) $(call color_text,95,Module): $@ ; $(PRECOMPILE) $(CMD.COMPILE_CCM) $(POSTCOMPILE)
+LINK.shared 	= @echo $(TARGET_MSG) $(call color_text,33,Linking shared): $@ ; $(PRELINK) $(CMD.LINK_SHARED) $(POSTLINK)
+LINK.static 	= @echo $(TARGET_MSG) $(call color_text,33,Linking static): $@ ; $(PRELINK) $(CMD.LINK_STATIC) $(POSTLINK)
+LINK.executable = @echo $(TARGET_MSG) $(call color_text,32,Linking executable): $@ ; $(PRELINK) $(CMD.LINK_EXEC) $(POSTLINK)
 
 # Print debug information to mapr/debug.log
 ifdef DEBUG
@@ -118,6 +120,8 @@ EXPORT_DEFINITIONS=$(EXPORT_DEFINITIONS) \
 LOCAL_CFLAGS=$(LOCAL_CFLAGS) \
 >> $(dir $(COMMON_MK_PATH))/debug.log)
 endif #DEBUG
+
+######################## RULES ###########################
 
 # Artificial targets
 .PHONY: all app clean cleanall test run release compile makedirs $(SUBPROJECTS)
@@ -161,7 +165,8 @@ $(addprefix OBJ., $(abspath $(OBJECTS))) \
 LDR.$(dir $(abspath $(OUT_FILE))) \
 NAM.$(abspath $(OUT_FILE)) \
 LIB.$(notdir $(subst .a,,$(subst lib,,$(OUT_FILE)))) \
-$(addprefix EXD.,$(EXPORT_DEFINITIONS))
+$(addprefix EXD.,$(EXPORT_DEFINITIONS))\
+$(addprefix PKG.,$(PKG_SEARCH))
 
 # Target to call targets in subs
 subprojects.%:
@@ -184,14 +189,19 @@ lib%.a: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 %.so %.dll: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.shared)
 
-%.o: $(filter %.c, $(SOURCES))
-	$(COMPILE.c)
+# Rule generator $1 - source path,  $2 -command to execute
+define generate_rule =
 
-%.o: $(filter %.cpp, $(SOURCES)) $(PRECOMPILED_MODULES)
-	$(COMPILE.cc)
+$(OBJ_PATH)/$(basename $(subst ..,updir,$1)).o : $1
+	$2
 
-%.o: $(filter %.cc, $(SOURCES)) $(PRECOMPILED_MODULES)
-	$(COMPILE.cc)
+endef
+
+RULES += $(foreach src,$(filter %.c,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.c)))
+RULES += $(foreach src,$(filter %.cc,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.cc)))
+RULES += $(foreach src,$(filter %.cpp,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.cc)))
+
+$(eval $(RULES))
 
 %.pcm: $(MODULES)
 	$(COMPILE.ccm)
