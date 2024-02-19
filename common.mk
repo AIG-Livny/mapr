@@ -189,22 +189,25 @@ lib%.a: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 %.so %.dll: $(SP_TARGETS) $(PRECOMPILED_MODULES) $(OBJECTS)
 	$(LINK.shared)
 
+#FIRST_WAY = 1
+SECOND_WAY = 1
+ifdef FIRST_WAY
 #### FIRST WAY  ~ 3 seconds dry-run
 # Rule generator $1 - source path,  $2 -command to execute
-#define generate_rule =
-#
-#$(OBJ_PATH)/$(basename $(subst ..,updir,$1)).o : $1
-#	$2
-#
-#endef
-#
-#RULES += $(foreach src,$(filter %.c,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.c)))
-#RULES += $(foreach src,$(filter %.cc,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.cc)))
-#RULES += $(foreach src,$(filter %.cpp,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.cc)))
-#
-#$(eval $(RULES))
-#### END FIRST WAY
+define generate_rule =
 
+$(OBJ_PATH)/$(basename $(subst ..,updir,$1)).o : $1
+	$2
+
+endef
+
+RULES += $(foreach src,$(filter %.c,$(SOURCES)),$(call generate_rule,$(src),$(COMPILE.c)))
+
+$(eval $(RULES))
+#### END FIRST WAY
+endif
+
+ifdef SECOND_WAY
 #### SECOND WAY ~ 2 sec
 
 # Get sequence "./ ../ ../../ ../../../" from current dir to root
@@ -224,7 +227,7 @@ generate_rules_to = $(foreach ud,$(UPDIR_SEQUENCE),$(call generate-rule,$(ud),$1
 
 $(eval $(call generate_rules_to,*.c,$(COMPILE.c)))
 ### END SECOND WAY
-
+endif
 
 
 %.pcm: $(MODULES)
