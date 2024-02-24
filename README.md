@@ -32,6 +32,10 @@ endif
 If `mapr` doesn't exist it will be downloaded. 
 For subprojects need to create same makefile, but when make started from main directory, subprojects will not download mapr copy. All subprojects will use the main `mapr`. This scheme was made for building any subproject separately. Only when you `cd` into any subproject and run `make` will be downloaded new mapr copy. By returning to main directory, the main `mapr` engages again.
 
+# Status
+MaPr works fine, but it relative slow due target generation when it not necessary. There is ralated project `Mapyr` https://github.com/AIG-Livny/mapyr.git - python implementation of this script.
+I will no longer support this project, because not going to use GNU make at all. Mapyr is more flexible and uses modern language.
+
 # Usage
 All configurations of project must be in Makefile, not in `mapr/common.mk`.
 
