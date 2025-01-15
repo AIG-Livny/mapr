@@ -1,3 +1,5 @@
+## ! Will not be developed further. Archive !
+
 # MaPr v.0.8
 
 (Ma)ke (Pr)oject - GCC/clang project building system. 
